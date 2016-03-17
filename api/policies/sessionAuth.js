@@ -9,7 +9,7 @@
  */
 module.exports = function(req, res, next) {
 
-  // User is allowed, proceed to the next policy, 
+  // User is allowed, proceed to the next policy,
   // or if this is the last policy, the controller
   if (req.session.user) {
     return next();
@@ -18,4 +18,13 @@ module.exports = function(req, res, next) {
   // User is not allowed
   // redirect to login page
   return res.redirect('/login');
+};
+
+module.exports = function isEmailConfirm (req, res, next) {
+
+  if (req.session.user.active) {
+    return next();
+  }
+
+  return res.redirect('/emailconfirm');
 };

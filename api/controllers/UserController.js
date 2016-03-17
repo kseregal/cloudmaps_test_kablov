@@ -21,13 +21,13 @@ module.exports = {
           var nodemailer = require('nodemailer');
           var smtpTransport = require('nodemailer-smtp-transport');
           var transporter = nodemailer.createTransport(smtpTransport({
-              host: 'localhost',
+              host: 'mx.onego.ru',
               port: 25,
               ignoreTLS: true
             })
           );
           var mailOptions ={
-            from: 'test@cloudmaps.ru' ,
+            from: 'skablov@onego.ru' ,
             to: model.email,
             subject: 'User Activation Email',
             text: 'http://localhost:1337/user/register/?id='+data.id+'&t='+model.password
@@ -72,7 +72,43 @@ module.exports = {
     }
   },
 
+  emailconfirm: function(req, res) {
+    return res.view('user/emailconfirm', {message: 'Ваш аккаунт не подтвержден', id: req.session.user.id});
+  },
+
+  emailsend: function (req, res) {
+
+    User.findOne({id: req.session.user.id}).exec(function(error, user){
+        var nodemailer = require('nodemailer');
+        var smtpTransport = require('nodemailer-smtp-transport');
+        var transporter = nodemailer.createTransport(smtpTransport({
+            host: 'mx.onego.ru',
+            port: 25,
+            ignoreTLS: true
+          })
+        );
+        var mailOptions ={
+          from: 'skablov@onego.ru' ,
+          to: user.email,
+          subject: 'User Activation Email',
+          text: 'http://localhost:1337/user/register/?id='+user.id+'&t='+user.password
+        };
+        transporter.sendMail(mailOptions, function(error, info){
+          if(error){
+            res.view('user/error', {message: 'При отправке письма произошла ошибка: ' + error.message});
+          }
+          else {
+            delete req.session.user;
+            res.view('user/after_register');
+
+          }
+        });
+
+    });
+  },
+
   login: function(req, res){
+
     if(req.method == 'POST'){
       User.findOne({username: req.param('username')}).exec(function(error, user){
         if(error){
@@ -80,8 +116,8 @@ module.exports = {
         }
         else{
           if(user.password == crypto.createHash('sha256').update(req.param('password')).digest('hex')){
-            req.session.user = user;
-            return res.redirect('/user/profile/'+user.id);
+              req.session.user = user;
+              return res.redirect('/user/profile/'+user.id);
           }
           else{
             res.view('user/error',{message: 'Неверный логин или пароль'});
